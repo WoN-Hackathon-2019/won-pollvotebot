@@ -7,7 +7,7 @@ import won.bot.framework.eventbot.action.BaseEventBotAction;
 import won.bot.framework.eventbot.event.Event;
 import won.bot.framework.eventbot.listener.EventListener;
 import won.bot.framework.extensions.matcher.MatcherExtensionAtomCreatedEvent;
-import won.bot.skeleton.context.SkeletonBotContextWrapper;
+import won.bot.skeleton.context.PollVoteBotContextWrapper;
 import won.protocol.message.WonMessage;
 import won.protocol.message.builder.WonMessageBuilder;
 
@@ -25,11 +25,11 @@ public class MatcherExtensionAtomCreatedAction extends BaseEventBotAction {
 
     @Override protected void doRun(Event event, EventListener executingListener) throws Exception {
         EventListenerContext ctx = getEventListenerContext();
-        if(!(event instanceof MatcherExtensionAtomCreatedEvent) || !(getEventListenerContext().getBotContextWrapper() instanceof SkeletonBotContextWrapper)) {
+        if(!(event instanceof MatcherExtensionAtomCreatedEvent) || !(getEventListenerContext().getBotContextWrapper() instanceof PollVoteBotContextWrapper)) {
             logger.error("MatcherExtensionAtomCreatedAction can only handle MatcherExtensionAtomCreatedEvent and only works with SkeletonBotContextWrapper");
             return;
         }
-        SkeletonBotContextWrapper botContextWrapper = (SkeletonBotContextWrapper) ctx.getBotContextWrapper();
+        PollVoteBotContextWrapper botContextWrapper = (PollVoteBotContextWrapper) ctx.getBotContextWrapper();
         MatcherExtensionAtomCreatedEvent atomCreatedEvent = (MatcherExtensionAtomCreatedEvent) event;
 
         Map<URI, Set<URI>> connectedSocketsMapSet = botContextWrapper.getConnectedSockets();

@@ -6,10 +6,10 @@ import won.bot.framework.extensions.serviceatom.ServiceAtomEnabledBotContextWrap
 import java.net.URI;
 import java.util.*;
 
-public class SkeletonBotContextWrapper extends ServiceAtomEnabledBotContextWrapper {
+public class PollVoteBotContextWrapper extends ServiceAtomEnabledBotContextWrapper {
     private final String connectedSocketsMap;
 
-    public SkeletonBotContextWrapper(BotContext botContext, String botName) {
+    public PollVoteBotContextWrapper(BotContext botContext, String botName) {
         super(botContext, botName);
         this.connectedSocketsMap = botName + ":connectedSocketsMap";
     }
