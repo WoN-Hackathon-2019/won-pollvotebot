@@ -8,10 +8,12 @@ import java.util.*;
 
 public class PollVoteBotContextWrapper extends ServiceAtomEnabledBotContextWrapper {
     private final String connectedSocketsMap;
+    private final String strawPollIdName;
 
     public PollVoteBotContextWrapper(BotContext botContext, String botName) {
         super(botContext, botName);
         this.connectedSocketsMap = botName + ":connectedSocketsMap";
+        this.strawPollIdName = botName + ":strawPollIdName";
     }
 
     public Map<URI, Set<URI>> getConnectedSockets() {
@@ -36,5 +38,19 @@ public class PollVoteBotContextWrapper extends ServiceAtomEnabledBotContextWrapp
 
     public void removeConnectedSocket(URI senderSocket, URI targetSocket) {
         getBotContext().removeFromListMap(connectedSocketsMap, senderSocket.toString(), targetSocket);
+    }
+
+    /**
+     * Retrieving all strawPollIds from the atom context by the
+     * strawPollIdName (collection name).
+     *
+     * @return a set of strawpoll ids
+     */
+    public Set<Long> getAllStrawPollIdsFromContext() {
+        return getBotContext().loadObjectMap(strawPollIdName)
+                .keySet()
+                .stream()
+                .map(Long::valueOf)
+                .collect(Collectors.toSet());
     }
 }
