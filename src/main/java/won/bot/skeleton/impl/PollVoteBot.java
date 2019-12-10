@@ -30,7 +30,7 @@ import won.bot.framework.extensions.serviceatom.ServiceAtomExtension;
 import won.bot.skeleton.action.MatcherExtensionAtomCreatedAction;
 import won.bot.skeleton.context.SkeletonBotContextWrapper;
 
-public class SkeletonBot extends EventBot implements MatcherExtension, ServiceAtomExtension {
+public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAtomExtension {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private int registrationMatcherRetryInterval;
     private MatcherBehaviour matcherBehaviour;

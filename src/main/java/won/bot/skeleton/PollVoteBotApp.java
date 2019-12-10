@@ -9,12 +9,12 @@ import won.bot.framework.bot.utils.BotUtils;
 @SpringBootConfiguration
 @PropertySource("classpath:application.properties")
 @ImportResource("classpath:/spring/app/botApp.xml")
-public class SkeletonBotApp {
+public class PollVoteBotApp {
     public static void main(String[] args) throws Exception {
         if (!BotUtils.isValidRunConfig()) {
             System.exit(1);
         }
-        SpringApplication app = new SpringApplication(SkeletonBotApp.class);
+        SpringApplication app = new SpringApplication(PollVoteBotApp.class);
         app.setWebEnvironment(false);
         app.run(args);
         // ConfigurableApplicationContext applicationContext = app.run(args);
