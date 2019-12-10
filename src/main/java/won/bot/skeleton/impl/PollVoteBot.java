@@ -103,8 +103,8 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
         // filter to prevent reacting to serviceAtom <-> ownedAtom events;
         NotFilter noInternalServiceAtomEventFilter = getNoInternalServiceAtomEventFilter();
 
-        // filter to prevent reacting to message Commands
-        bus.subscribe(ConnectFromOtherAtomEvent.class, noInternalServiceAtomEventFilter, new IncomingGenericMessageAction(ctx));
+        // listen to new chat messages
+        bus.subscribe(MessageFromOtherAtomEvent.class, new IncomingGenericMessageAction(ctx));
 
         // listen for the MatcherExtensionAtomCreatedEvent
         bus.subscribe(MatcherExtensionAtomCreatedEvent.class, new MatcherExtensionAtomCreatedAction(ctx));
