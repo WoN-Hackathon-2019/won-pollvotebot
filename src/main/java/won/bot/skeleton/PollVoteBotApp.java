@@ -13,10 +13,6 @@ import won.bot.skeleton.strawpoll.api.StrawpollAPI;
 @ImportResource("classpath:/spring/app/botApp.xml")
 public class PollVoteBotApp {
     public static void main(String[] args) throws Exception {
-        StrawpollAPI.create("Hello", List.of("A1", "A2", "A3"));
-        StrawpollAPI.vote(19064645L, 2);
-        System.out.println(StrawpollAPI.getResults(19064645L));
-
         if (!BotUtils.isValidRunConfig()) {
             System.exit(1);
         }
