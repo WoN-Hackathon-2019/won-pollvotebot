@@ -68,12 +68,14 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
         // activate ServiceAtomBehaviour
         serviceAtomBehaviour = new ServiceAtomBehaviour(ctx);
         serviceAtomBehaviour.activate();
+
         // set up matching extension
         // as this is an extension, it can be activated and deactivated as needed
         // if activated, a MatcherExtensionAtomCreatedEvent is sent every time a new
         // atom is created on a monitored node
         matcherBehaviour = new MatcherBehaviour(ctx, "BotSkeletonMatchingExtension", registrationMatcherRetryInterval);
         matcherBehaviour.activate();
+
         // create filters to determine which atoms the bot should react to
         NotFilter noOwnAtoms = new NotFilter(
                         new AtomUriInNamedListFilter(ctx, ctx.getBotContextWrapper().getAtomCreateListName()));

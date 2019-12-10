@@ -1,16 +1,22 @@
 package won.bot.skeleton;
 
+import com.sun.tools.javac.util.List;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.context.annotation.PropertySource;
 import won.bot.framework.bot.utils.BotUtils;
+import won.bot.skeleton.strawpoll.api.StrawpollAPI;
 
 @SpringBootConfiguration
 @PropertySource("classpath:application.properties")
 @ImportResource("classpath:/spring/app/botApp.xml")
 public class PollVoteBotApp {
     public static void main(String[] args) throws Exception {
+        StrawpollAPI.create("Hello", List.of("A1", "A2", "A3"));
+        StrawpollAPI.vote(19064645L, 2);
+        System.out.println(StrawpollAPI.getResults(19064645L));
+
         if (!BotUtils.isValidRunConfig()) {
             System.exit(1);
         }
