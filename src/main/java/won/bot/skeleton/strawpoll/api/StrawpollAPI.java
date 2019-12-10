@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 public class StrawpollAPI {
 
     private static final String STRAWPOLL_HOST = "https://www.strawpoll.me/";
-    private static final String STRAW_POLL_API = STRAWPOLL_HOST + "api/v2/polls/";
+    private static final String STRAW_POLL_API = STRAWPOLL_HOST + "api/v2/polls";
 
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded; charset=utf-8";
@@ -58,7 +58,7 @@ public class StrawpollAPI {
     }
 
     public static SPPoll getResults(Long id) throws IOException, ParseException {
-        HttpGet request = new HttpGet(STRAW_POLL_API + id);
+        HttpGet request = new HttpGet(STRAW_POLL_API + "/" + id);
         request.setHeader("Accept", CONTENT_TYPE_JSON);
         request.setHeader("Content-type", CONTENT_TYPE_JSON);
 
@@ -124,11 +124,12 @@ public class StrawpollAPI {
     }
 
     private static StringEntity createCreationRequestBody(String question, List<String> answers) throws UnsupportedEncodingException {
-        HashMap body = new HashMap();
+        HashMap body = new JSONObject();
         body.put("title", question);
-        body.put("options", answers.stream().map(value -> "\"" + value + "\"").toArray());
+        body.put("options", answers);
         body.put("multi", false);
-        return new StringEntity(new JSONObject(body).toString());
+        String rawJSON = body.toString();
+        return new StringEntity(rawJSON);
     }
 
     private static StringEntity createVoteRequestBody(int index, SPAuth auth) throws UnsupportedEncodingException {
