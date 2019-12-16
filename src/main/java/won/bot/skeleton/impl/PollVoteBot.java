@@ -94,8 +94,7 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
         serviceAtomBehaviour.activate();
 
         // activate TextMessageCommandBehaviour
-        textMessageCommandBehaviour = new TextMessageCommandBehaviour(ctx,
-                botCommands.toArray(new TextMessageCommand[0]));
+        textMessageCommandBehaviour = new TextMessageCommandBehaviour(ctx, botCommands.toArray(new TextMessageCommand[0]));
         textMessageCommandBehaviour.activate();
 
         // register listeners for event.impl.command events used to tell the bot to send
