@@ -1,6 +1,7 @@
 package won.bot.skeleton.impl;
 
 import com.sun.jndi.toolkit.url.Uri;
+import org.apache.jena.query.Dataset;
 import won.bot.framework.bot.base.EventBot;
 import won.bot.framework.eventbot.EventListenerContext;
 import won.bot.framework.eventbot.action.BaseEventBotAction;
@@ -31,10 +32,15 @@ import won.bot.skeleton.action.OpenConnectionAction;
 import won.protocol.message.WonMessage;
 import won.protocol.model.Connection;
 import won.protocol.util.DefaultAtomModelWrapper;
+import won.protocol.util.linkeddata.LinkedDataSource;
+import won.protocol.util.linkeddata.WonLinkedDataUtils;
+import won.protocol.vocabulary.SCHEMA;
 import won.protocol.vocabulary.WONMATCH;
+import won.protocol.vocabulary.WXCHAT;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -140,9 +146,7 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
             @Override
             protected void doRun(Event event, EventListener eventListener) throws Exception {
                 HintFromMatcherEvent hintEvent = (HintFromMatcherEvent) event;
-                System.out.println(hintEvent.getHintTargetAtom());
-                long pollId = 123L;
-                pollAtomsIndex.put(pollId, hintEvent.getHintTargetAtom());
+                createVoteAtomForPollAtom(hintEvent.getHintTargetAtom());
                 if (!waitingRandomConnections.isEmpty()) {
                     for (Connection con: waitingRandomConnections) {
                         sendRandomPollToConnection(con);
@@ -171,6 +175,46 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
 
         final EventBus bus = getEventBus();
         bus.publish(new ConnectionMessageCommandEvent(connection, "Found poll atom: " + uri));
+    }
+
+    private void createVoteAtomForPollAtom(URI pollAtomUri) {
+        Dataset atomData = getEventListenerContext().getLinkedDataSource().getDataForResource(pollAtomUri);
+        DefaultAtomModelWrapper defaultAtomModelWrapper = new DefaultAtomModelWrapper(atomData);
+        System.out.println(defaultAtomModelWrapper.getContentPropertyObjects("s:name"));
+        // TODO: System.out.println(defaultAtomModelWrapper.get());
+        long pollId = 123L; // TODO: Get id from poll Atom body
+        String pollName = "ASDSF"; // TODO: get name from poll atom body
+        pollAtomsIndex.put(pollId, pollAtomUri);
+
+        boolean hasConnection = false; // TODO: check if poll atom has a vote atom connected
+
+        if (!hasConnection) {
+            // Create VoteAtom
+            final EventBus bus = getEventBus();
+            EventListenerContext ctx = getEventListenerContext();
+
+            // Create Vote Atom
+            URI wonNodeUri = ctx.getNodeURISource().getNodeURI();
+            URI atomURI = ctx.getWonNodeInformationService().generateAtomURI(wonNodeUri);
+            DefaultAtomModelWrapper atomWrapper = new DefaultAtomModelWrapper(atomURI);
+            atomWrapper.addPropertyStringValue(SCHEMA.NAME, "Vote for: " + pollName);
+            CreateAtomCommandEvent createVoteAtomEvent = new CreateAtomCommandEvent(atomWrapper.getDataset(), "atom_uris");
+            bus.publish(createVoteAtomEvent);
+            bus.subscribe(CreateAtomCommandSuccessEvent.class, new ActionOnEventListener(ctx, new CommandResultFilter(createVoteAtomEvent), new BaseEventBotAction(ctx) {
+
+                @Override
+                protected void doRun(Event event, EventListener eventListener) throws Exception {
+                    CreateAtomCommandEvent createAtomCommandEvent = (CreateAtomCommandEvent) event;
+                    System.out.println("published atom:" + event.toString());
+                    // TODO: Create connection VoteAtom --> PollATom per pollAtomUri
+
+//        String message = "Hello, let's connect!"; //optional welcome message
+//        ConnectCommandEvent connectCommandEvent = new ConnectCommandEvent(
+//                senderSocketURI,recipientSocketURI, message);
+//        getEventBus().publish(connectCommandEvent);
+                }
+            }));
+        }
     }
 
     private void findPollWithId(Connection connection, Matcher matcher) {
