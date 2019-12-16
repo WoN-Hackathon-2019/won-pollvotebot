@@ -23,7 +23,6 @@ import won.bot.skeleton.action.MatcherExtensionAtomCreatedAction;
 import won.bot.skeleton.action.OpenConnectionAction;
 import won.protocol.model.Connection;
 
-import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
