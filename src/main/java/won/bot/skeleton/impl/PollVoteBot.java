@@ -1,7 +1,5 @@
 package won.bot.skeleton.impl;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import won.bot.framework.bot.base.EventBot;
 import won.bot.framework.eventbot.EventListenerContext;
 import won.bot.framework.eventbot.behaviour.ExecuteWonMessageCommandBehaviour;
@@ -31,7 +29,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAtomExtension {
-    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private int registrationMatcherRetryInterval;
     private MatcherBehaviour matcherBehaviour;
     private ServiceAtomBehaviour serviceAtomBehaviour;
