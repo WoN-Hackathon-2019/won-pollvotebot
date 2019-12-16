@@ -1,5 +1,7 @@
 package won.bot.skeleton.strawpoll.api.models;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -9,9 +11,20 @@ import java.util.List;
 
 public class SPPoll {
 
+    @Getter
+    @Setter
     private long id;
+
+    @Getter
+    @Setter
     private String title;
+
+    @Getter
+    @Setter
     private boolean multi;
+
+    @Getter
+    @Setter
     private List<SPPollOption> options = new ArrayList<>();
 
     public SPPoll(JSONObject json) {

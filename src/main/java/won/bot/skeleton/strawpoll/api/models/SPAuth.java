@@ -1,11 +1,22 @@
 package won.bot.skeleton.strawpoll.api.models;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.List;
 
 public class SPAuth {
 
+    @Getter
+    @Setter
     private String securityToken;
+
+    @Getter
+    @Setter
     private String fieldAuthenticityToken;
+
+    @Getter
+    @Setter
     private List<Long> options;
 
     public SPAuth(String securityToken, String fieldAuthenticityToken, List<Long> options) {
