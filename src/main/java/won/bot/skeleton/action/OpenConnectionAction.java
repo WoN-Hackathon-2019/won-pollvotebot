@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import won.bot.framework.eventbot.EventListenerContext;
 import won.bot.framework.eventbot.action.BaseEventBotAction;
+import won.bot.framework.eventbot.bus.EventBus;
 import won.bot.framework.eventbot.event.Event;
 import won.bot.framework.eventbot.event.impl.command.MessageCommandEvent;
 import won.bot.framework.eventbot.event.impl.command.connect.ConnectCommandEvent;
@@ -31,13 +32,15 @@ public class OpenConnectionAction extends BaseEventBotAction {
     @Override
     protected void doRun(Event event, EventListener executingListener) {
         EventListenerContext ctx = getEventListenerContext();
+        EventBus bus = ctx.getEventBus();
         ConnectFromOtherAtomEvent connectFromOtherAtomEvent = (ConnectFromOtherAtomEvent) event;
         try {
             String message = "Hi there! I am the PollVoteBot. I am here to help you giving your opinion. To see what I can do, type 'usage'.";
+
             final ConnectCommandEvent connectCommandEvent = new ConnectCommandEvent(
                     connectFromOtherAtomEvent.getRecipientSocket(),
                     connectFromOtherAtomEvent.getSenderSocket(), message);
-            ctx.getEventBus().subscribe(ConnectCommandSuccessEvent.class, new ActionOnFirstEventListener(ctx, new CommandResultFilter(connectCommandEvent),
+            bus.subscribe(ConnectCommandSuccessEvent.class, new ActionOnFirstEventListener(ctx, new CommandResultFilter(connectCommandEvent),
                     new BaseEventBotAction(ctx) {
                         @Override
                         protected void doRun(Event event, EventListener executingListener) {
@@ -46,7 +49,7 @@ public class OpenConnectionAction extends BaseEventBotAction {
                             ctx.getEventBus().publish(usageCommandEvent);
                         }
                     }));
-            ctx.getEventBus().publish(connectCommandEvent);
+            bus.publish(connectCommandEvent);
         } catch (Exception te) {
             logger.error(te.getMessage(), te);
         }
