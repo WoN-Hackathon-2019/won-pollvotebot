@@ -44,7 +44,8 @@ public class OpenConnectionAction extends BaseEventBotAction {
                     new BaseEventBotAction(ctx) {
                         @Override
                         protected void doRun(Event event, EventListener executingListener) {
-                            ConnectCommandSuccessEvent successEvent = (ConnectCommandSuccessEvent) event;
+                            final ConnectCommandSuccessEvent successEvent = (ConnectCommandSuccessEvent) event;
+                            logger.info(successEvent.getCon().toString());
                             UsageCommandEvent usageCommandEvent = new UsageCommandEvent(successEvent.getCon());
                             ctx.getEventBus().publish(usageCommandEvent);
                         }
