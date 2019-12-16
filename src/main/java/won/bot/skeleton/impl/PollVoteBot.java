@@ -3,6 +3,7 @@ package won.bot.skeleton.impl;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ import won.bot.framework.eventbot.event.impl.command.connect.ConnectCommandSucce
 import won.bot.framework.eventbot.event.impl.command.connectionmessage.ConnectionMessageCommandEvent;
 import won.bot.framework.eventbot.event.impl.wonmessage.CloseFromOtherAtomEvent;
 import won.bot.framework.eventbot.event.impl.wonmessage.ConnectFromOtherAtomEvent;
+import won.bot.framework.eventbot.event.impl.wonmessage.HintFromMatcherEvent;
 import won.bot.framework.eventbot.event.impl.wonmessage.MessageFromOtherAtomEvent;
 import won.bot.framework.eventbot.filter.impl.AndFilter;
 import won.bot.framework.eventbot.filter.impl.AtomUriInNamedListFilter;
@@ -74,10 +76,18 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
 
         // define BotCommands for TextMessageCommandBehaviour
         ArrayList<TextMessageCommand> botCommands = new ArrayList<>();
-        botCommands.add(new EqualsTextMessageCommand("random", "selects a random poll", "random", (Connection connection) -> {
-            bus.publish(new ConnectionMessageCommandEvent(connection, "Bye, bye!"));
-            bus.publish(new CloseCommandEvent(connection));
-        }));
+        botCommands.add(new EqualsTextMessageCommand("random",
+                "selects a random poll",
+                "random",
+                this::findRandomPoll));
+        botCommands.add(new PatternMatcherTextMessageCommand("find <id>",
+                "find a poll with the given ",
+                Pattern.compile("^find\\s+(\\d+)$", Pattern.CASE_INSENSITIVE),
+                this::findPollWithId));
+        botCommands.add(new EqualsTextMessageCommand("close",
+                "Closes the chat",
+                "close"
+                , this::closeConnection));
 
         // activate ServiceAtomBehaviour
         serviceAtomBehaviour = new ServiceAtomBehaviour(ctx);
@@ -111,5 +121,26 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
 
         // Listen for new connections
         bus.subscribe(ConnectFromOtherAtomEvent.class, noInternalServiceAtomEventFilter, new OpenConnectionAction(ctx));
+    }
+
+    private void findRandomPoll(Connection connection) {
+        final EventBus bus = getEventBus();
+        bus.publish(new ConnectionMessageCommandEvent(connection, "find random poll"));
+    }
+
+    private void findPollWithId(Connection connection, Matcher matcher) {
+        final EventBus bus = getEventBus();
+        if (!matcher.matches()) {
+            bus.publish(new ConnectionMessageCommandEvent(connection, "Invalid command!"));
+            return;
+        }
+        long pollId = Long.parseLong(matcher.group(1));
+        bus.publish(new ConnectionMessageCommandEvent(connection, "find poll with id " + pollId));
+    }
+
+    private void closeConnection(Connection connection) {
+        final EventBus bus = getEventBus();
+        bus.publish(new ConnectionMessageCommandEvent(connection, "Bye, bye!"));
+        bus.publish(new CloseCommandEvent(connection));
     }
 }
