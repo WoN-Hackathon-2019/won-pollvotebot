@@ -1,62 +1,43 @@
 package won.bot.skeleton.impl;
 
-import java.io.IOException;
 import java.lang.invoke.MethodHandles;
-import java.net.URI;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import lombok.var;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.stereotype.Service;
 import won.bot.framework.bot.base.EventBot;
 import won.bot.framework.eventbot.EventListenerContext;
-import won.bot.framework.eventbot.action.BaseEventBotAction;
 import won.bot.framework.eventbot.behaviour.ExecuteWonMessageCommandBehaviour;
 import won.bot.framework.eventbot.bus.EventBus;
-import won.bot.framework.eventbot.event.Event;
 import won.bot.framework.eventbot.event.impl.command.close.CloseCommandEvent;
-import won.bot.framework.eventbot.event.impl.command.connect.ConnectCommandEvent;
-import won.bot.framework.eventbot.event.impl.command.connect.ConnectCommandResultEvent;
-import won.bot.framework.eventbot.event.impl.command.connect.ConnectCommandSuccessEvent;
 import won.bot.framework.eventbot.event.impl.command.connectionmessage.ConnectionMessageCommandEvent;
-import won.bot.framework.eventbot.event.impl.wonmessage.CloseFromOtherAtomEvent;
 import won.bot.framework.eventbot.event.impl.wonmessage.ConnectFromOtherAtomEvent;
-import won.bot.framework.eventbot.event.impl.wonmessage.HintFromMatcherEvent;
 import won.bot.framework.eventbot.event.impl.wonmessage.MessageFromOtherAtomEvent;
-import won.bot.framework.eventbot.filter.impl.AndFilter;
-import won.bot.framework.eventbot.filter.impl.AtomUriInNamedListFilter;
-import won.bot.framework.eventbot.filter.impl.CommandResultFilter;
 import won.bot.framework.eventbot.filter.impl.NotFilter;
-import won.bot.framework.eventbot.listener.EventListener;
-import won.bot.framework.eventbot.listener.impl.ActionOnFirstEventListener;
 import won.bot.framework.extensions.matcher.MatcherBehaviour;
 import won.bot.framework.extensions.matcher.MatcherExtension;
 import won.bot.framework.extensions.matcher.MatcherExtensionAtomCreatedEvent;
 import won.bot.framework.extensions.serviceatom.ServiceAtomBehaviour;
 import won.bot.framework.extensions.serviceatom.ServiceAtomExtension;
 import won.bot.framework.extensions.textmessagecommand.TextMessageCommandBehaviour;
-import won.bot.framework.extensions.textmessagecommand.UsageCommandEvent;
 import won.bot.framework.extensions.textmessagecommand.command.EqualsTextMessageCommand;
 import won.bot.framework.extensions.textmessagecommand.command.PatternMatcherTextMessageCommand;
 import won.bot.framework.extensions.textmessagecommand.command.TextMessageCommand;
 import won.bot.skeleton.action.IncomingGenericMessageAction;
 import won.bot.skeleton.action.MatcherExtensionAtomCreatedAction;
 import won.bot.skeleton.action.OpenConnectionAction;
-import won.bot.skeleton.context.PollVoteBotContextWrapper;
 import won.bot.skeleton.strawpoll.api.StrawpollAPI;
 import won.bot.skeleton.strawpoll.api.models.SPPoll;
-import won.bot.skeleton.strawpoll.api.models.SPPollOption;
 import won.protocol.model.Connection;
-import won.protocol.util.WonRdfUtils;
 
 @Service
 public class ChatService extends EventBot implements MatcherExtension, ServiceAtomExtension {
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
 
     private int registrationMatcherRetryInterval;
     private MatcherBehaviour matcherBehaviour;
@@ -218,12 +199,9 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
             bus.publish(new ConnectionMessageCommandEvent(connection, System.lineSeparator() + "You voted successfully"));
         }
         catch (Exception e) {
-            bus.publish(new ConnectionMessageCommandEvent(connection, System.lineSeparator() + "Whoops, it looks like we did not find a poll with the given id or an index that was given"));
+            bus.publish(new ConnectionMessageCommandEvent(connection, System.lineSeparator() + "Whoops, it looks like we did not find a poll with the given id or index"));
             e.printStackTrace();
         }
-
-
-
 
     }
 }
