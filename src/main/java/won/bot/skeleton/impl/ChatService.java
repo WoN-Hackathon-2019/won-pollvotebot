@@ -12,6 +12,7 @@ import won.bot.framework.eventbot.behaviour.ExecuteWonMessageCommandBehaviour;
 import won.bot.framework.eventbot.bus.EventBus;
 import won.bot.framework.eventbot.event.Event;
 import won.bot.framework.eventbot.event.ResponseEvent;
+import won.bot.framework.eventbot.event.impl.atomlifecycle.AtomCreatedEvent;
 import won.bot.framework.eventbot.event.impl.command.close.CloseCommandEvent;
 import won.bot.framework.eventbot.event.impl.command.connectionmessage.ConnectionMessageCommandEvent;
 import won.bot.framework.eventbot.event.impl.command.connectionmessage.ConnectionMessageCommandSuccessEvent;
@@ -26,6 +27,7 @@ import won.bot.framework.eventbot.listener.impl.ActionOnEventListener;
 import won.bot.framework.eventbot.listener.impl.ActionOnFirstEventListener;
 import won.bot.framework.extensions.matcher.MatcherBehaviour;
 import won.bot.framework.extensions.matcher.MatcherExtension;
+import won.bot.framework.extensions.matcher.MatcherExtensionAtomCreatedEvent;
 import won.bot.framework.extensions.serviceatom.ServiceAtomBehaviour;
 import won.bot.framework.extensions.serviceatom.ServiceAtomExtension;
 import won.bot.framework.extensions.textmessagecommand.TextMessageCommandBehaviour;
@@ -41,6 +43,9 @@ import won.protocol.exception.IncorrectPropertyCountException;
 import won.protocol.model.Connection;
 import won.protocol.util.DefaultAtomModelWrapper;
 import won.protocol.vocabulary.*;
+import won.protocol.vocabulary.SCHEMA;
+import won.protocol.vocabulary.WON;
+import won.protocol.vocabulary.WONMATCH;
 
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
@@ -166,6 +171,16 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
                         sendRandomPollToConnection(con);
                     }
                     waitingRandomConnections.clear();
+                }
+            }
+        }));
+        bus.subscribe(MatcherExtensionAtomCreatedEvent.class, new ActionOnEventListener(ctx, new BaseEventBotAction(ctx) {
+            @Override
+            protected void doRun(Event event, EventListener executingListener) throws Exception {
+                DefaultAtomModelWrapper wrapper = new DefaultAtomModelWrapper(((MatcherExtensionAtomCreatedEvent) event).getAtomData());
+                MatcherExtensionAtomCreatedEvent mExtensionAtomCreated = (MatcherExtensionAtomCreatedEvent) event;
+                if (wrapper.getAllTags().contains("PollAtom")) {
+                    createVoteAtomForPollAtom(mExtensionAtomCreated.getAtomURI());
                 }
             }
         }));
