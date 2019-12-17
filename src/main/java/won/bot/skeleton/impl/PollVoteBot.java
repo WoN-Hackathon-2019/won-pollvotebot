@@ -2,6 +2,9 @@ package won.bot.skeleton.impl;
 
 import com.sun.jndi.toolkit.url.Uri;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.vocabulary.DC;
 import won.bot.framework.bot.base.EventBot;
 import won.bot.framework.eventbot.EventListenerContext;
 import won.bot.framework.eventbot.action.BaseEventBotAction;
@@ -22,6 +25,7 @@ import won.bot.framework.eventbot.listener.impl.ActionOnEventListener;
 import won.bot.framework.eventbot.listener.impl.ActionOnFirstEventListener;
 import won.bot.framework.extensions.matcher.MatcherBehaviour;
 import won.bot.framework.extensions.matcher.MatcherExtension;
+import won.bot.framework.extensions.matcher.MatcherExtensionAtomCreatedEvent;
 import won.bot.framework.extensions.serviceatom.ServiceAtomBehaviour;
 import won.bot.framework.extensions.serviceatom.ServiceAtomExtension;
 import won.bot.framework.extensions.textmessagecommand.TextMessageCommandBehaviour;
@@ -29,8 +33,11 @@ import won.bot.framework.extensions.textmessagecommand.command.EqualsTextMessage
 import won.bot.framework.extensions.textmessagecommand.command.PatternMatcherTextMessageCommand;
 import won.bot.framework.extensions.textmessagecommand.command.TextMessageCommand;
 import won.bot.skeleton.action.OpenConnectionAction;
+import won.bot.skeleton.model.SCHEMA_EXTENDED;
+import won.protocol.exception.IncorrectPropertyCountException;
 import won.protocol.message.WonMessage;
 import won.protocol.model.Connection;
+import won.protocol.model.Coordinate;
 import won.protocol.util.DefaultAtomModelWrapper;
 import won.protocol.util.linkeddata.LinkedDataSource;
 import won.protocol.util.linkeddata.WonLinkedDataUtils;
@@ -148,7 +155,7 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
                 HintFromMatcherEvent hintEvent = (HintFromMatcherEvent) event;
                 createVoteAtomForPollAtom(hintEvent.getHintTargetAtom());
                 if (!waitingRandomConnections.isEmpty()) {
-                    for (Connection con: waitingRandomConnections) {
+                    for (Connection con : waitingRandomConnections) {
                         sendRandomPollToConnection(con);
                     }
                     waitingRandomConnections.clear();
@@ -180,13 +187,34 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
     private void createVoteAtomForPollAtom(URI pollAtomUri) {
         Dataset atomData = getEventListenerContext().getLinkedDataSource().getDataForResource(pollAtomUri);
         DefaultAtomModelWrapper defaultAtomModelWrapper = new DefaultAtomModelWrapper(atomData);
-        System.out.println(defaultAtomModelWrapper.getContentPropertyObjects("s:name"));
-        // TODO: System.out.println(defaultAtomModelWrapper.get());
-        long pollId = 123L; // TODO: Get id from poll Atom body
-        String pollName = "ASDSF"; // TODO: get name from poll atom body
+
+        String rawName = null, rawId = null;
+
+        try {
+            rawName = defaultAtomModelWrapper.getContentPropertyStringValue(SCHEMA.NAME);
+            rawId = defaultAtomModelWrapper.getContentPropertyStringValue(SCHEMA_EXTENDED.ID);
+
+            for (Resource node : defaultAtomModelWrapper.getSeeksNodes()) {
+                if (rawName == null) {
+                    rawName = defaultAtomModelWrapper.getContentPropertyStringValue(node, SCHEMA.NAME);
+                } else if (rawId == null) {
+                    rawId = defaultAtomModelWrapper.getContentPropertyStringValue(node, SCHEMA_EXTENDED.ID);
+                } else {
+                    break;
+                }
+            }
+        } catch (IncorrectPropertyCountException e) {
+            // Silently ignore property count warnings
+        }
+        if (rawName == null || rawId == null) {
+            System.out.println("Could not find name or id in PollAtom with URI: " + pollAtomUri + ". Ignoring...");
+            return;
+        }
+        long pollId = Long.parseLong(rawId);
+        String pollName = rawName;
         pollAtomsIndex.put(pollId, pollAtomUri);
 
-        boolean hasConnection = false; // TODO: check if poll atom has a vote atom connected
+        boolean hasConnection = true; // TODO: check if poll atom has a vote atom connected
 
         if (!hasConnection) {
             // Create VoteAtom
@@ -204,8 +232,8 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
 
                 @Override
                 protected void doRun(Event event, EventListener eventListener) throws Exception {
-                    CreateAtomCommandEvent createAtomCommandEvent = (CreateAtomCommandEvent) event;
-                    System.out.println("published atom:" + event.toString());
+                    CreateAtomCommandSuccessEvent createAtomCommandEvent = (CreateAtomCommandSuccessEvent) event;
+                    System.out.println("published create atom:" + event.toString());
                     // TODO: Create connection VoteAtom --> PollATom per pollAtomUri
 
 //        String message = "Hello, let's connect!"; //optional welcome message
