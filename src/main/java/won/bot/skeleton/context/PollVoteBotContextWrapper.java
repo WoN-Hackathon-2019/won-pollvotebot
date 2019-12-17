@@ -7,34 +7,20 @@ import java.net.URI;
 import java.util.*;
 
 public class PollVoteBotContextWrapper extends ServiceAtomEnabledBotContextWrapper {
-    private final String connectedSocketsMap;
+
+    private final String createdPollAtomUris;
 
     public PollVoteBotContextWrapper(BotContext botContext, String botName) {
         super(botContext, botName);
-        this.connectedSocketsMap = botName + ":connectedSocketsMap";
+        this.createdPollAtomUris = botName + ":createdPollAtomUris";
     }
 
-    public Map<URI, Set<URI>> getConnectedSockets() {
-        Map<String, List<Object>> connectedSockets = getBotContext().loadListMap(connectedSocketsMap);
-        Map<URI, Set<URI>> connectedSocketsMapSet = new HashMap<>(connectedSockets.size());
-
-        for(Map.Entry<String, List<Object>> entry : connectedSockets.entrySet()) {
-            URI senderSocket = URI.create(entry.getKey());
-            Set<URI> targetSocketsSet = new HashSet<>(entry.getValue().size());
-            for(Object o : entry.getValue()) {
-                targetSocketsSet.add((URI) o);
-            }
-            connectedSocketsMapSet.put(senderSocket, targetSocketsSet);
-        }
-
-        return connectedSocketsMapSet;
+    public boolean hasCreatedVoteAtomForPollAtomWithURI(URI pollAtomUri) {
+        Map<String, List<Object>> createdPollAtoms = getBotContext().loadListMap(createdPollAtomUris);
+        return createdPollAtoms.containsKey(pollAtomUri.toString());
     }
 
-    public void addConnectedSocket(URI senderSocket, URI targetSocket) {
-        getBotContext().addToListMap(connectedSocketsMap, senderSocket.toString(), targetSocket);
-    }
-
-    public void removeConnectedSocket(URI senderSocket, URI targetSocket) {
-        getBotContext().removeFromListMap(connectedSocketsMap, senderSocket.toString(), targetSocket);
+    public void createdVoteAtomForPollAtomWithURI(URI voteAtomUri, URI pollAtomUri) {
+        getBotContext().addToListMap(createdPollAtomUris, pollAtomUri.toString(), voteAtomUri);
     }
 }

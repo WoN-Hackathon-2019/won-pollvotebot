@@ -11,6 +11,7 @@ import won.bot.framework.eventbot.action.BaseEventBotAction;
 import won.bot.framework.eventbot.behaviour.ExecuteWonMessageCommandBehaviour;
 import won.bot.framework.eventbot.bus.EventBus;
 import won.bot.framework.eventbot.event.Event;
+import won.bot.framework.eventbot.event.ResponseEvent;
 import won.bot.framework.eventbot.event.impl.atomlifecycle.AtomCreatedEvent;
 import won.bot.framework.eventbot.event.impl.command.close.CloseCommandEvent;
 import won.bot.framework.eventbot.event.impl.command.connectionmessage.ConnectionMessageCommandEvent;
@@ -34,12 +35,14 @@ import won.bot.framework.extensions.textmessagecommand.command.EqualsTextMessage
 import won.bot.framework.extensions.textmessagecommand.command.PatternMatcherTextMessageCommand;
 import won.bot.framework.extensions.textmessagecommand.command.TextMessageCommand;
 import won.bot.skeleton.action.OpenConnectionAction;
+import won.bot.skeleton.context.PollVoteBotContextWrapper;
 import won.bot.skeleton.model.SCHEMA_EXTENDED;
 import won.bot.skeleton.strawpoll.api.StrawpollAPI;
 import won.bot.skeleton.strawpoll.api.models.SPPoll;
 import won.protocol.exception.IncorrectPropertyCountException;
 import won.protocol.model.Connection;
 import won.protocol.util.DefaultAtomModelWrapper;
+import won.protocol.vocabulary.*;
 import won.protocol.vocabulary.SCHEMA;
 import won.protocol.vocabulary.WON;
 import won.protocol.vocabulary.WONMATCH;
@@ -155,6 +158,7 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
             protected void doRun(Event event, EventListener eventListener) throws Exception {
                 System.out.println("published atom:" + event.toString());
             }
+
         }));
         bus.subscribe(HintFromMatcherEvent.class, new ActionOnEventListener(ctx, new BaseEventBotAction(ctx) {
 
@@ -199,64 +203,15 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
         URI uri = uris[random];
 
         final EventBus bus = getEventBus();
-        bus.publish(new ConnectionMessageCommandEvent(connection, "Found poll atom: " + uri));
-    }
-
-    private void createVoteAtomForPollAtom(URI pollAtomUri) {
-        Dataset atomData = getEventListenerContext().getLinkedDataSource().getDataForResource(pollAtomUri);
+        Dataset atomData = getEventListenerContext().getLinkedDataSource().getDataForResource(uri);
         DefaultAtomModelWrapper defaultAtomModelWrapper = new DefaultAtomModelWrapper(atomData);
+        String rawId = defaultAtomModelWrapper.getContentPropertyStringValue(SCHEMA_EXTENDED.ID);
 
-        String rawName = null, rawId = null;
-
-        try {
-            rawName = defaultAtomModelWrapper.getContentPropertyStringValue(SCHEMA.NAME);
-            rawId = defaultAtomModelWrapper.getContentPropertyStringValue(SCHEMA_EXTENDED.ID);
-
-            for (Resource node : defaultAtomModelWrapper.getSeeksNodes()) {
-                if (rawName == null) {
-                    rawName = defaultAtomModelWrapper.getContentPropertyStringValue(node, SCHEMA.NAME);
-                } else if (rawId == null) {
-                    rawId = defaultAtomModelWrapper.getContentPropertyStringValue(node, SCHEMA_EXTENDED.ID);
-                } else {
-                    break;
-                }
-            }
-        } catch (IncorrectPropertyCountException e) {
-            // Silently ignore property count warnings
-        }
-        if (rawName == null || rawId == null) {
-            System.out.println("Could not find name or id in PollAtom with URI: " + pollAtomUri + ". Ignoring...");
-            return;
-        }
-        long pollId = Long.parseLong(rawId);
-        String pollName = rawName;
-        pollAtomsIndex.put(pollId, pollAtomUri);
-
-        boolean hasConnection = true; // TODO: check if poll atom has a vote atom connected
-
-        if (!hasConnection) {
-            // Create VoteAtom
-            final EventBus bus = getEventBus();
-            EventListenerContext ctx = getEventListenerContext();
-
-            // Create Vote Atom
-            URI wonNodeUri = ctx.getNodeURISource().getNodeURI();
-            URI atomURI = ctx.getWonNodeInformationService().generateAtomURI(wonNodeUri);
-            DefaultAtomModelWrapper atomWrapper = new DefaultAtomModelWrapper(atomURI);
-            atomWrapper.addPropertyStringValue(SCHEMA.NAME, "Vote for: " + pollName);
-
-            //atomWrapper.addPropertyStringValue(); // TODO: add reference to poll atom
-
-            CreateAtomCommandEvent createVoteAtomEvent = new CreateAtomCommandEvent(atomWrapper.getDataset(), "atom_uris");
-            bus.publish(createVoteAtomEvent);
-            bus.subscribe(CreateAtomCommandSuccessEvent.class, new ActionOnEventListener(ctx, new CommandResultFilter(createVoteAtomEvent), new BaseEventBotAction(ctx) {
-
-                @Override
-                protected void doRun(Event event, EventListener eventListener) throws Exception {
-                    CreateAtomCommandSuccessEvent createAtomCommandEvent = (CreateAtomCommandSuccessEvent) event;
-                    System.out.println("Successfully created vote atom with URI: " + createAtomCommandEvent.getAtomURI());
-                }
-            }));
+        if (rawId == null) {
+            bus.publish(new ConnectionMessageCommandEvent(connection, "Could not fetch id from poll atom: " + uri));
+        } else {
+            long pollId = Long.parseLong(rawId);
+            this.showOptions(connection, pollId);
         }
     }
 
@@ -292,6 +247,73 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
                 .append("  ?result a won:PollAtom .").append(System.lineSeparator())
                 .append("}")
                 .toString();
+    }
+
+    private void createVoteAtomForPollAtom(URI pollAtomUri) {
+        System.out.println("Found possible PollAtom with URI: " + pollAtomUri);
+        Dataset atomData = getEventListenerContext().getLinkedDataSource().getDataForResource(pollAtomUri);
+        DefaultAtomModelWrapper defaultAtomModelWrapper = new DefaultAtomModelWrapper(atomData);
+
+        String rawName = null, rawId = null;
+
+        try {
+            rawName = defaultAtomModelWrapper.getContentPropertyStringValue(SCHEMA.NAME);
+            rawId = defaultAtomModelWrapper.getContentPropertyStringValue(SCHEMA_EXTENDED.ID);
+
+            for (Resource node : defaultAtomModelWrapper.getSeeksNodes()) {
+                if (rawName == null) {
+                    rawName = defaultAtomModelWrapper.getContentPropertyStringValue(node, SCHEMA.NAME);
+                } else if (rawId == null) {
+                    rawId = defaultAtomModelWrapper.getContentPropertyStringValue(node, SCHEMA_EXTENDED.ID);
+                } else {
+                    break;
+                }
+            }
+        } catch (IncorrectPropertyCountException e) {
+            // Silently ignore property count warnings
+        }
+        if (rawName == null || rawId == null) {
+            System.out.println("Could not find name or id in PollAtom with URI: " + pollAtomUri + ". Ignoring...");
+            return;
+        }
+
+        long pollId = Long.parseLong(rawId);
+        String pollName = rawName;
+        System.out.println("Found PollAtom with name: " + pollName + " and id: " + pollId);
+        pollAtomsIndex.put(pollId, pollAtomUri);
+
+        PollVoteBotContextWrapper botContextWrapper = (PollVoteBotContextWrapper) getBotContextWrapper();
+        if (!botContextWrapper.hasCreatedVoteAtomForPollAtomWithURI(pollAtomUri)) {
+            // Create VoteAtom
+            final EventBus bus = getEventBus();
+            EventListenerContext ctx = getEventListenerContext();
+
+            // Create Vote Atom
+            URI wonNodeUri = ctx.getNodeURISource().getNodeURI();
+            URI atomURI = ctx.getWonNodeInformationService().generateAtomURI(wonNodeUri);
+            DefaultAtomModelWrapper atomWrapper = new DefaultAtomModelWrapper(atomURI);
+
+            Resource atom = atomWrapper.getAtomModel().createResource(atomURI.toString());
+            atom.addProperty(SCHEMA.NAME, "Vote for: " + pollName);
+
+            Resource remoteAtom = atomWrapper.getAtomModel().createResource(pollAtomUri.toString());
+            atom.addProperty(WONCON.inResponseTo, remoteAtom);
+
+            System.out.println("Creating vote atom for poll atom with URI: " + pollAtomUri.toString());
+            CreateAtomCommandEvent createVoteAtomEvent = new CreateAtomCommandEvent(atomWrapper.getDataset(), "atom_uris");
+            bus.publish(createVoteAtomEvent);
+            bus.subscribe(CreateAtomCommandSuccessEvent.class, new ActionOnEventListener(ctx, new CommandResultFilter(createVoteAtomEvent), new BaseEventBotAction(ctx) {
+
+                @Override
+                protected void doRun(Event event, EventListener eventListener) throws Exception {
+                    CreateAtomCommandSuccessEvent createAtomCommandEvent = (CreateAtomCommandSuccessEvent) event;
+                    botContextWrapper.createdVoteAtomForPollAtomWithURI(createAtomCommandEvent.getAtomURI(), pollAtomUri);
+                    System.out.println("Successfully created vote atom with URI: " + createAtomCommandEvent.getAtomURI());
+                }
+            }));
+        } else {
+            System.out.println("Already created vote atom for: " + pollAtomUri);
+        }
     }
 
     /**
