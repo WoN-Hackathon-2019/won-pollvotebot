@@ -1,8 +1,16 @@
 package won.bot.skeleton.strawpoll.api.models;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class SPPollOption {
 
+    @Getter
+    @Setter
     private String title;
+
+    @Getter
+    @Setter
     private long votes;
 
     public SPPollOption(String option, long votes) {
