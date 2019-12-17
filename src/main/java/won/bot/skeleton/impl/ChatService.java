@@ -241,6 +241,7 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
             Resource remoteAtom = atomWrapper.getAtomModel().createResource(pollAtomUri.toString());
             atom.addProperty(WONCON.inResponseTo, remoteAtom);
 
+            System.out.println("Creating vote atom for poll atom with URI: " + pollAtomUri.toString());
             CreateAtomCommandEvent createVoteAtomEvent = new CreateAtomCommandEvent(atomWrapper.getDataset(), "atom_uris");
             bus.publish(createVoteAtomEvent);
             bus.subscribe(CreateAtomCommandSuccessEvent.class, new ActionOnEventListener(ctx, new CommandResultFilter(createVoteAtomEvent), new BaseEventBotAction(ctx) {
