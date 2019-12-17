@@ -11,6 +11,7 @@ import won.bot.framework.eventbot.action.BaseEventBotAction;
 import won.bot.framework.eventbot.behaviour.ExecuteWonMessageCommandBehaviour;
 import won.bot.framework.eventbot.bus.EventBus;
 import won.bot.framework.eventbot.event.Event;
+import won.bot.framework.eventbot.event.ResponseEvent;
 import won.bot.framework.eventbot.event.impl.command.close.CloseCommandEvent;
 import won.bot.framework.eventbot.event.impl.command.connectionmessage.ConnectionMessageCommandEvent;
 import won.bot.framework.eventbot.event.impl.command.connectionmessage.ConnectionMessageCommandSuccessEvent;
@@ -32,14 +33,14 @@ import won.bot.framework.extensions.textmessagecommand.command.EqualsTextMessage
 import won.bot.framework.extensions.textmessagecommand.command.PatternMatcherTextMessageCommand;
 import won.bot.framework.extensions.textmessagecommand.command.TextMessageCommand;
 import won.bot.skeleton.action.OpenConnectionAction;
+import won.bot.skeleton.context.PollVoteBotContextWrapper;
 import won.bot.skeleton.model.SCHEMA_EXTENDED;
 import won.bot.skeleton.strawpoll.api.StrawpollAPI;
 import won.bot.skeleton.strawpoll.api.models.SPPoll;
 import won.protocol.exception.IncorrectPropertyCountException;
 import won.protocol.model.Connection;
 import won.protocol.util.DefaultAtomModelWrapper;
-import won.protocol.vocabulary.SCHEMA;
-import won.protocol.vocabulary.WONMATCH;
+import won.protocol.vocabulary.*;
 
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
@@ -152,6 +153,7 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
             protected void doRun(Event event, EventListener eventListener) throws Exception {
                 System.out.println("published atom:" + event.toString());
             }
+
         }));
         bus.subscribe(HintFromMatcherEvent.class, new ActionOnEventListener(ctx, new BaseEventBotAction(ctx) {
 
@@ -190,6 +192,7 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
     }
 
     private void createVoteAtomForPollAtom(URI pollAtomUri) {
+        System.out.println("Found possible PollAtom with URI: " + pollAtomUri);
         Dataset atomData = getEventListenerContext().getLinkedDataSource().getDataForResource(pollAtomUri);
         DefaultAtomModelWrapper defaultAtomModelWrapper = new DefaultAtomModelWrapper(atomData);
 
@@ -215,13 +218,14 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
             System.out.println("Could not find name or id in PollAtom with URI: " + pollAtomUri + ". Ignoring...");
             return;
         }
+
         long pollId = Long.parseLong(rawId);
         String pollName = rawName;
+        System.out.println("Found PollAtom with name: " + pollName + " and id: " + pollId);
         pollAtomsIndex.put(pollId, pollAtomUri);
 
-        boolean hasConnection = true; // TODO: check if poll atom has a vote atom connected
-
-        if (!hasConnection) {
+        PollVoteBotContextWrapper botContextWrapper = (PollVoteBotContextWrapper) getBotContextWrapper();
+        if (!botContextWrapper.hasCreatedVoteAtomForPollAtomWithURI(pollAtomUri)) {
             // Create VoteAtom
             final EventBus bus = getEventBus();
             EventListenerContext ctx = getEventListenerContext();
@@ -230,9 +234,12 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
             URI wonNodeUri = ctx.getNodeURISource().getNodeURI();
             URI atomURI = ctx.getWonNodeInformationService().generateAtomURI(wonNodeUri);
             DefaultAtomModelWrapper atomWrapper = new DefaultAtomModelWrapper(atomURI);
-            atomWrapper.addPropertyStringValue(SCHEMA.NAME, "Vote for: " + pollName);
 
-            //atomWrapper.addPropertyStringValue(); // TODO: add reference to poll atom
+            Resource atom = atomWrapper.getAtomModel().createResource(atomURI.toString());
+            atom.addProperty(SCHEMA.NAME, "Vote for: " + pollName);
+
+            Resource remoteAtom = atomWrapper.getAtomModel().createResource(pollAtomUri.toString());
+            atom.addProperty(WONCON.inResponseTo, remoteAtom);
 
             CreateAtomCommandEvent createVoteAtomEvent = new CreateAtomCommandEvent(atomWrapper.getDataset(), "atom_uris");
             bus.publish(createVoteAtomEvent);
@@ -241,9 +248,12 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
                 @Override
                 protected void doRun(Event event, EventListener eventListener) throws Exception {
                     CreateAtomCommandSuccessEvent createAtomCommandEvent = (CreateAtomCommandSuccessEvent) event;
+                    botContextWrapper.createdVoteAtomForPollAtomWithURI(createAtomCommandEvent.getAtomURI(), pollAtomUri);
                     System.out.println("Successfully created vote atom with URI: " + createAtomCommandEvent.getAtomURI());
                 }
             }));
+        } else {
+            System.out.println("Already created vote atom for: " + pollAtomUri);
         }
     }
 
