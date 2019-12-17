@@ -203,7 +203,50 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
         URI uri = uris[random];
 
         final EventBus bus = getEventBus();
-        bus.publish(new ConnectionMessageCommandEvent(connection, "Found poll atom: " + uri));
+        Dataset atomData = getEventListenerContext().getLinkedDataSource().getDataForResource(uri);
+        DefaultAtomModelWrapper defaultAtomModelWrapper = new DefaultAtomModelWrapper(atomData);
+        String rawId = defaultAtomModelWrapper.getContentPropertyStringValue(SCHEMA_EXTENDED.ID);
+
+        if (rawId == null) {
+            bus.publish(new ConnectionMessageCommandEvent(connection, "Could not fetch id from poll atom: " + uri));
+        } else {
+            long pollId = Long.parseLong(rawId);
+            this.showOptions(connection, pollId);
+        }
+    }
+
+    private void findPollWithId(Connection connection, Matcher matcher) {
+        final EventBus bus = getEventBus();
+        if (!matcher.matches()) {
+            bus.publish(new ConnectionMessageCommandEvent(connection, "Invalid command!"));
+            return;
+        }
+        long pollId = Long.parseLong(matcher.group(1));
+        this.showOptions(connection, pollId);
+    }
+
+    private void closeConnection(Connection connection) {
+        final EventBus bus = getEventBus();
+        final EventListenerContext ctx = getEventListenerContext();
+        ConnectionMessageCommandEvent byeByeMessageEvent = new ConnectionMessageCommandEvent(connection, "Bye, bye!");
+        bus.publish(byeByeMessageEvent);
+        bus.subscribe(ConnectionMessageCommandSuccessEvent.class, new ActionOnFirstEventListener(ctx, new CommandResultFilter(byeByeMessageEvent),
+                new BaseEventBotAction(ctx) {
+                    @Override
+                    protected void doRun(Event event, EventListener executingListener) {
+                        ctx.getEventBus().publish(new CloseCommandEvent(connection));
+                    }
+                }));
+    }
+
+    private String createSPARQLQuery() {
+        return new StringBuilder()
+                .append("prefix won: <https://w3id.org/won/core#>").append(System.lineSeparator())
+                .append("prefix dc:  <http://purl.org/dc/elements/1.1/>").append(System.lineSeparator())
+                .append("select distinct ?result where {").append(System.lineSeparator())
+                .append("  ?result a won:PollAtom .").append(System.lineSeparator())
+                .append("}")
+                .toString();
     }
 
     private void createVoteAtomForPollAtom(URI pollAtomUri) {
@@ -271,40 +314,6 @@ public class ChatService extends EventBot implements MatcherExtension, ServiceAt
         } else {
             System.out.println("Already created vote atom for: " + pollAtomUri);
         }
-    }
-
-    private void findPollWithId(Connection connection, Matcher matcher) {
-        final EventBus bus = getEventBus();
-        if (!matcher.matches()) {
-            bus.publish(new ConnectionMessageCommandEvent(connection, "Invalid command!"));
-            return;
-        }
-        long pollId = Long.parseLong(matcher.group(1));
-        this.showOptions(connection, pollId);
-    }
-
-    private void closeConnection(Connection connection) {
-        final EventBus bus = getEventBus();
-        final EventListenerContext ctx = getEventListenerContext();
-        ConnectionMessageCommandEvent byeByeMessageEvent = new ConnectionMessageCommandEvent(connection, "Bye, bye!");
-        bus.publish(byeByeMessageEvent);
-        bus.subscribe(ConnectionMessageCommandSuccessEvent.class, new ActionOnFirstEventListener(ctx, new CommandResultFilter(byeByeMessageEvent),
-                new BaseEventBotAction(ctx) {
-                    @Override
-                    protected void doRun(Event event, EventListener executingListener) {
-                        ctx.getEventBus().publish(new CloseCommandEvent(connection));
-                    }
-                }));
-    }
-
-    private String createSPARQLQuery() {
-        return new StringBuilder()
-                .append("prefix won: <https://w3id.org/won/core#>").append(System.lineSeparator())
-                .append("prefix dc:  <http://purl.org/dc/elements/1.1/>").append(System.lineSeparator())
-                .append("select distinct ?result where {").append(System.lineSeparator())
-                .append("  ?result a won:PollAtom .").append(System.lineSeparator())
-                .append("}")
-                .toString();
     }
 
     /**
