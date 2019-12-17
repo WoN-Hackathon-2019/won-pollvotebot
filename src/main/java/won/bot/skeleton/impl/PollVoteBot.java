@@ -12,6 +12,7 @@ import won.bot.framework.eventbot.behaviour.ExecuteWonMessageCommandBehaviour;
 import won.bot.framework.eventbot.bus.EventBus;
 import won.bot.framework.eventbot.event.Event;
 import won.bot.framework.eventbot.event.impl.command.close.CloseCommandEvent;
+import won.bot.framework.eventbot.event.impl.command.connect.ConnectCommandEvent;
 import won.bot.framework.eventbot.event.impl.command.connectionmessage.ConnectionMessageCommandEvent;
 import won.bot.framework.eventbot.event.impl.command.connectionmessage.ConnectionMessageCommandSuccessEvent;
 import won.bot.framework.eventbot.event.impl.command.create.CreateAtomCommandEvent;
@@ -226,6 +227,9 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
             URI atomURI = ctx.getWonNodeInformationService().generateAtomURI(wonNodeUri);
             DefaultAtomModelWrapper atomWrapper = new DefaultAtomModelWrapper(atomURI);
             atomWrapper.addPropertyStringValue(SCHEMA.NAME, "Vote for: " + pollName);
+
+            //atomWrapper.addPropertyStringValue(); // TODO: add reference to poll atom
+
             CreateAtomCommandEvent createVoteAtomEvent = new CreateAtomCommandEvent(atomWrapper.getDataset(), "atom_uris");
             bus.publish(createVoteAtomEvent);
             bus.subscribe(CreateAtomCommandSuccessEvent.class, new ActionOnEventListener(ctx, new CommandResultFilter(createVoteAtomEvent), new BaseEventBotAction(ctx) {
@@ -233,13 +237,7 @@ public class PollVoteBot extends EventBot implements MatcherExtension, ServiceAt
                 @Override
                 protected void doRun(Event event, EventListener eventListener) throws Exception {
                     CreateAtomCommandSuccessEvent createAtomCommandEvent = (CreateAtomCommandSuccessEvent) event;
-                    System.out.println("published create atom:" + event.toString());
-                    // TODO: Create connection VoteAtom --> PollATom per pollAtomUri
-
-//        String message = "Hello, let's connect!"; //optional welcome message
-//        ConnectCommandEvent connectCommandEvent = new ConnectCommandEvent(
-//                senderSocketURI,recipientSocketURI, message);
-//        getEventBus().publish(connectCommandEvent);
+                    System.out.println("Successfully created vote atom with URI: " + createAtomCommandEvent.getAtomURI());
                 }
             }));
         }
